@@ -1,18 +1,15 @@
-name: Build OpenJDK 17 for Android and iOS
+name: Build OpenJDK 21 for Android (16 KB pages)
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 1 1 */2 *"
 
 jobs:
   build_android:
     strategy:
       matrix:
-        arch: ["aarch32", "aarch64", "x86", "x86_64"]
-        version: [17, 21]
+        arch: ["aarch32", "aarch64", "x86_64"]
+        version: [21]
       fail-fast: false
 
     name: "Build Java ${{ matrix.version }} for Android ${{matrix.arch}}"
@@ -35,6 +32,18 @@ jobs:
       - name: Build with CI build script
         run: export TARGET_VERSION=${{ matrix.version }} && bash "1_ci_build_arch_${{matrix.arch}}.sh"
 
+      - name: Check the 16 KB page alignment
+        if: matrix.arch != 'aarch32'
+        run: |
+          mkdir -p aligncheck && tar -xJf jre${{ matrix.version }}-android*.tar.xz -C aligncheck
+          bad=0
+          for f in $(find aligncheck -name '*.so'); do
+            for a in $(readelf -lW "$f" | awk '$1=="LOAD"{print $NF}'); do
+              if [ "$a" != "0x4000" ]; then echo "not 16 KB aligned: $f ($a)"; bad=1; fi
+            done
+          done
+          exit $bad
+
       - name: Upload JDK build output
         uses: actions/upload-artifact@v4
         with:
@@ -52,86 +61,3 @@ jobs:
         with:
           name: "jre${{ matrix.version }}-debuginfo-${{matrix.arch}}"
           path: dizout
-
-  build_iosport:
-    strategy:
-      matrix:
-        version: [17, 21]
-      fail-fast: false
-
-    name: "Build Java ${{ matrix.version }} for iOS aarch64"
-    runs-on: J316sAP
-    continue-on-error: true
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build with CI build script
-        run: |
-          export PATH=/opt/procursus/bin:/opt/homebrew/bin:$PATH
-          export JAVA_HOME=$(/usr/libexec/java_home -v ${{ matrix.version }})
-          export BUILD_IOS=1 J316SAP=1
-          export TARGET_VERSION=${{ matrix.version }}
-          bash "1_ci_build_arch_aarch64.sh"
-
-      #    - name: Upload JDK build output
-      #      uses: actions/upload-artifact@v4
-      #      with:
-      #        name: "jdk17-ios-aarch64"
-      #        path: jdk17*.tar.xz
-
-      - name: Upload JRE build output
-        uses: actions/upload-artifact@v4
-        with:
-          name: "jre${{ matrix.version }}-ios-aarch64"
-          path: jre${{ matrix.version }}-ios*.tar.xz
-
-      - name: Upload JRE debuginfo build output
-        uses: actions/upload-artifact@v4
-        with:
-          name: "jre${{ matrix.version }}-ios-debuginfo-aarch64"
-          path: dizout
-
-  pojav:
-    needs: build_android
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        version: [17, 21]
-      fail-fast: false
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Get jre${{ matrix.version }}-aarch32
-        uses: actions/download-artifact@v4
-        with:
-          name: jre${{ matrix.version }}-aarch32
-          path: pojav
-
-      - name: Get jre${{ matrix.version }}-aarch64
-        uses: actions/download-artifact@v4
-        with:
-          name: jre${{ matrix.version }}-aarch64
-          path: pojav
-
-      - name: Get jre${{ matrix.version }}-x86
-        uses: actions/download-artifact@v4
-        with:
-          name: jre${{ matrix.version }}-x86
-          path: pojav
-
-      - name: Get jre${{ matrix.version }}-x86_64
-        uses: actions/download-artifact@v4
-        with:
-          name: jre${{ matrix.version }}-x86_64
-          path: pojav
-
-      - name: Repack JRE
-        run: export TARGET_VERSION=${{ matrix.version }} && bash "9_repackjre.sh" $GITHUB_WORKSPACE/pojav $GITHUB_WORKSPACE/pojav/jre${{ matrix.version }}-pojav
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: jre${{ matrix.version }}-pojav
-          path: pojav/jre${{ matrix.version }}-pojav/*

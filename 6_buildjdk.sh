@@ -52,6 +52,8 @@ if [[ "$BUILD_IOS" != "1" ]]; then
 
   export CFLAGS+=" -mllvm -polly -DANDROID -Wno-error=implicit-function-declaration -Wno-error=int-conversion"
   export LDFLAGS+=" -L$PWD/dummy_libs -Wl,--undefined-version"
+  # 16 KB pages (see android-wrapped-clang).
+  export LDFLAGS+=" -Wl,-z,max-page-size=16384"
 
 # Create dummy libraries so we won't have to remove them in OpenJDK makefiles
   mkdir -p dummy_libs

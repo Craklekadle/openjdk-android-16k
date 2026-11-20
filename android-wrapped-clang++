@@ -6,6 +6,12 @@ if [ "$1" = "--version" ]; then
   echo "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
 else
   # theargs=
-  exec $thecxx -Wno-unknown-warning-option "${@/-fno-var-tracking-assignments/}"
+  # Every shared library and program is linked for 16 KB pages, as Google Play requires and as
+  # Android devices with 16 KB pages need; compile-only calls are left as they are.
+  link=1
+  for a in "$@"; do case "$a" in -c|-E|-S|-M|-MM) link=0 ;; esac; done
+  extra=()
+  [ "$link" = 1 ] && extra=(-Wl,-z,max-page-size=16384)
+  exec $thecxx -Wno-unknown-warning-option "${extra[@]}" "${@/-fno-var-tracking-assignments/}"
   # exec $thecxx "$theargs"
 fi
