@@ -1,5 +1,13 @@
 # angelauramc-openjdk-build 
 
+## OpenJDK 21.0.13.1 for Android, 16 KB pages (branch `buildjre21-16k`)
+
+- Source: OpenJDK jdk21u at tag `jdk-21.0.13.1-ga` (commit `7a7090bd432d`), as `5_clonejdk.sh` fetches it, with the Android patches of `patches/jre_21/android` (rebased on that version).
+- Every library is linked for 16 KB memory pages (`-Wl,-z,max-page-size=16384`); the workflow checks it.
+- `runtime-cut/`: how the built runtime is cut down before it ships (jlink, `cut.sh`).
+- The release `jdk-21.0.13.1-android` holds the complete corresponding source of the runtimes built here: the jdk21u source archive and this repository at that commit (patches, build scripts, `runtime-cut`).
+- OpenJDK is licensed under the GNU General Public License, version 2, with the Classpath Exception (`LICENSE` in its source).
+
 **This branch is for OpenJDK 17 and 21.**
 
 Based on [Java for Android](http://openjdk.java.net/projects/mobile/android.html) and [the PojavLauncher variant](https://github.com/PojavLauncherTeam/android-openjdk-build-multiarch)
