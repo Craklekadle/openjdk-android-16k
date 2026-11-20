@@ -2313,9 +2313,18 @@ index 902cf9673..3b8acd66b 100644
  #include <poll.h>
  #include <sys/socket.h>
 diff --git a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
-index 9499bae2d..9e1733232 100644
+index 9499bae2d..b32bbf5db 100644
 --- a/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
 +++ b/src/java.base/unix/native/libnio/fs/UnixNativeDispatcher.c
+@@ -79,7 +79,7 @@
+ // by defining binary compatible statx structs in this file and
+ // not relying on included headers.
+ 
+-#ifndef __GLIBC__
++#if !defined(__GLIBC__) && !defined(__BIONIC__)
+ // Alpine doesn't know these types, define them
+ typedef unsigned int       __uint32_t;
+ typedef unsigned short     __uint16_t;
 @@ -237,6 +237,7 @@ typedef int fstatat64_func(int, const char *, struct stat64 *, int);
  typedef int unlinkat_func(int, const char*, int);
  typedef int renameat_func(int, const char*, int, const char*);
